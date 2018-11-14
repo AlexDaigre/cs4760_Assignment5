@@ -11,10 +11,17 @@
 #include <sys/ipc.h> 
 #include <sys/msg.h>
 
+struct mesg_buffer { 
+    long mtype; 
+    char mtext[10]; 
+} message; 
+
 void childClosedSignal(int sig);
 int closeChild();
 void closeProgramSignal(int sig);
 void closeProgram();
+
+void reciveMessages();
 
 void setupOutputFile();
 
@@ -36,7 +43,7 @@ int* clockShmPtr;
 FILE* outputFile;
 
 int currentProcesses;
-#define maxProcesses 18
+#define maxProcesses 1
 #define numberOfResources 20
 
 pid_t openProcesses[18] = {0};
@@ -131,12 +138,14 @@ int main (int argc, char *argv[]) {
     setupMsgQueue();
 
     while(clockShmPtr[0] < 80){
+    // while(1==1){
         // printf("looping!\n");
         if ((currentProcesses < maxProcesses)){
             // printf("Creating process!\n");
             createProcesses();
         }
         advanceTime();
+        reciveMessages();
     }
 
     closeProgram();
@@ -155,8 +164,8 @@ int closeChild(){
                 openProcesses[i] = 0;
             }
         }
-        printf("closing child %d\n", closedChild);
-        fprintf(outputFile, "closing child %d\n", closedChild);
+        // printf("closing child %d\n", closedChild);
+        // fprintf(outputFile, "closing child %d\n", closedChild);
         currentProcesses--;
     }
     return closedChild;
@@ -295,3 +304,21 @@ void setupMsgQueue(){
         exit(1);
     }
 }
+
+void reciveMessages(){
+    int msgRecived  = msgrcv(msgQueueId, &message, sizeof(message), 1, IPC_NOWAIT);
+    if (msgRecived == -1){
+        return;
+    }
+    
+    printf("Parent: Recived msg from child:%d\n", atoi(message.mtext));
+
+    message.mtype = atoi(message.mtext);
+
+    int msgSent = msgsnd(msgQueueId, &message, sizeof(message), 0);
+    if (msgSent < 0){
+        printf("Parrent: failed to send message.\n");
+    }
+    printf("Parent: sent msg to  child:%d\n", atoi(message.mtext));
+}
+        

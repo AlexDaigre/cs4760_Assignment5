@@ -27,15 +27,19 @@ int msgQueueId;
 int clockShmId;
 int* clockShmPtr;
 
+struct mesg_buffer { 
+    long mtype; 
+    char mtext[10]; 
+} message; 
 
 int main (int argc, char *argv[]) {
     signal(SIGINT, closeProgramSignal);
 
     char* maxResourcesString = argv[1];
-    int i = 0;
     char* stringElement = strtok(maxResourcesString, "/");
     char* maxResources[20];
 
+    int i = 0;
     while (stringElement != NULL){
         maxResources[i++] = stringElement;
         stringElement = strtok (NULL, "/");
@@ -44,15 +48,35 @@ int main (int argc, char *argv[]) {
     setupSharedClock();
     setupMsgQueue();
 
-    printf("time: %d:%d\n", clockShmPtr[0], clockShmPtr[1]);
+    // printf("time: %d:%d\n", clockShmPtr[0], clockShmPtr[1]);
 
-    printf("{");
-    for (i = 0; i < 20; ++i) {
-        printf("%s,", maxResources[i]);
+    // printf("{");
+    // for (i = 0; i < 20; ++i) {
+    //     printf("%s,", maxResources[i]);
+    // }
+    // printf("}\n");
+
+    message.mtype = 1;
+    sprintf(message.mtext, "%d", getpid());
+    // int j = 0;
+    // for(j=0; j<20; j++){
+    //     newResourceRequest.mtext[j] = 3;
+    // }
+    // newResourceRequest.mtext[20] = getpid();
+    // newResourceRequest.mtext[0] = "a";
+    
+    printf("Child %d: sending message to parent\n", getpid());
+    int msgSent = msgsnd(msgQueueId, &message, sizeof(message), 0);
+    if (msgSent < 0){
+        printf("Child %d: failed to send message.\n", getpid());
+        printf("Error: %d\n", errno);
+        // closeProgram();
     }
-    printf("}\n");
+    printf("Child %d: SENT message to parent\n", getpid());
 
-    // for(;;){}
+    msgrcv(msgQueueId, &message, sizeof(message), getpid(), 0);
+    printf("Child %d: recived message from parent\n", getpid());
+
     closeProgram();
 }
 
@@ -63,7 +87,6 @@ void closeProgramSignal(int sig){
 void closeProgram(){
     shmctl(clockShmId, IPC_RMID, NULL);
     // shmdt(clockShmPtr);
-    msgctl(msgQueueId, IPC_RMID, NULL);
     printf("Child %d Exiting gracefully.\n", getpid());
     exit(0);
 }
@@ -99,14 +122,14 @@ void setupMsgQueue(){
     if (-1 != open(QUEUENAME, O_CREAT, 0777)) {
         msgQueueKey = ftok(SHMNAME, QUEUEVAR);
     } else {
-        printf("ftok error in child: setupMsgQueue\n");
+        printf("ftok error in parrent: setupMsgQueue\n");
         printf("Error: %d\n", errno);
         exit(1);
     }
 
-    msgQueueId = msgget(msgQueueKey, (IPC_CREAT | 0777));
+    msgQueueId = msgget(msgQueueKey, 0777 |IPC_CREAT);
     if (msgQueueId < 0) {
-        printf("msgget error in child: setupSharedClock\n");
+        printf("msgget error in parrent: setupMsgQueue\n");
         printf("Error: %d\n", errno);
         exit(1);
     }
