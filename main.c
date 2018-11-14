@@ -8,6 +8,8 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/ipc.h> 
+#include <sys/msg.h>
 
 void childClosedSignal(int sig);
 int closeChild();
@@ -15,13 +17,19 @@ void closeProgramSignal(int sig);
 void closeProgram();
 
 void setupOutputFile();
-int* setupSharedClock();
 
 void createProcesses();
 void advanceTime();
 
+void setupSharedClock();
 #define CLOCKVAR 0
 #define SHMNAME "/tmp/daigreTmp43648"
+
+
+void setupMsgQueue();
+#define QUEUEVAR 0
+#define QUEUENAME "/tmp/daigreTmp48083"
+int msgQueueId;
 
 int clockShmId;
 int* clockShmPtr;
@@ -116,9 +124,11 @@ int main (int argc, char *argv[]) {
     fprintf(outputFile, "Max run time: %d\n", maxRunTime);
 
     //Intilize various shared memory
-    clockShmPtr = setupSharedClock();
+    setupSharedClock();
     clockShmPtr[0] = 0;
     clockShmPtr[1] = 0;
+
+    setupMsgQueue();
 
     while(clockShmPtr[0] < 80){
         // printf("looping!\n");
@@ -160,6 +170,7 @@ void closeProgram(){
     shmctl(clockShmId, IPC_RMID, NULL);
     // shmdt(clockShmPtr);
     fclose(outputFile);
+    msgctl(msgQueueId, IPC_RMID, NULL);
     int i;
     for(i = 0; i < 18; i++){
         if (openProcesses[i] != 0){
@@ -181,7 +192,7 @@ void setupOutputFile(){
     }
 }
 
-int* setupSharedClock(){
+void setupSharedClock(){
     key_t sharedClockKey;
     if (-1 != open(SHMNAME, O_CREAT, 0777)) {
         sharedClockKey = ftok(SHMNAME, CLOCKVAR);
@@ -205,8 +216,6 @@ int* setupSharedClock(){
         shmctl(clockShmId, IPC_RMID, NULL);
         exit(1);
     }
-
-    return clockShmPtr;
 }
 
 void advanceTime(){
@@ -267,4 +276,22 @@ void createProcesses(){
     printf("Execed child %d\n", newForkPid);
     fprintf(outputFile, "Execed child %d\n", newForkPid);
     currentProcesses++;
+}
+
+void setupMsgQueue(){
+    key_t msgQueueKey;
+    if (-1 != open(QUEUENAME, O_CREAT, 0777)) {
+        msgQueueKey = ftok(SHMNAME, QUEUEVAR);
+    } else {
+        printf("ftok error in parrent: setupMsgQueue\n");
+        printf("Error: %d\n", errno);
+        exit(1);
+    }
+
+    msgQueueId = msgget(msgQueueKey, (IPC_CREAT | 0777));
+    if (msgQueueId < 0) {
+        printf("msgget error in parrent: setupSharedClock\n");
+        printf("Error: %d\n", errno);
+        exit(1);
+    }
 }
