@@ -92,8 +92,8 @@ void closeProgramSignal(int sig){
 }
 
 void closeProgram(){
-    shmctl(clockShmId, IPC_RMID, NULL);
-    // shmdt(clockShmPtr);
+    // shmctl(clockShmId, IPC_RMID, NULL);
+    shmdt(clockShmPtr);
     printf("Child %d Exiting gracefully.\n", getpid());
     exit(0);
 }
