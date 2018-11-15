@@ -393,26 +393,26 @@ int checkGrant(int requestedResources[]){
         }
     }
 
-    int processesCompleted[18];
-    int grantOkay = 1;
-    int n = 0;
-    for (i = 0; i < 18; i++){
-        int resourcesAvalibleForProcess = 1;
-        for (j = 0; j < numberOfResources; j++){
-            if (needResources[i][j] > avalibleResources[j]){
-                resourcesAvalibleForProcess = 0;
-            }
-        }
-        if (resourcesAvalibleForProcess == 1){
-
-        }
-    }
-
+    // int processesCompleted[18];
     // int grantOkay = 1;
-    // for(i=0; i<20; i++){
-    //     if (requestedResources[i] > avalibleResources[i]){
-    //         grantOkay = 0;
+    // int n = 0;
+    // for (i = 0; i < 18; i++){
+    //     int resourcesAvalibleForProcess = 1;
+    //     for (j = 0; j < numberOfResources; j++){
+    //         if (needResources[i][j] > avalibleResources[j]){
+    //             resourcesAvalibleForProcess = 0;
+    //         }
+    //     }
+    //     if (resourcesAvalibleForProcess == 1){
+
     //     }
     // }
+
+    int grantOkay = 1;
+    for(i=0; i<20; i++){
+        if (requestedResources[i] > avalibleResources[i]){
+            grantOkay = 0;
+        }
+    }
     return grantOkay;
 }
