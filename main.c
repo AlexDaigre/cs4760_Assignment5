@@ -142,8 +142,8 @@ int main (int argc, char *argv[]) {
 
     setupMsgQueue();
 
-    while(clockShmPtr[0] < 80){
-    // while(1==1){
+    // while(clockShmPtr[0] < 80){
+    while(1==1){
         // printf("looping!\n");
         if ((currentProcesses < maxProcesses)){
             // printf("Creating process!\n");
