@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <time.h>
 #include <string.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
@@ -96,6 +97,7 @@ int resourceMaxes[18][numberOfResources] = {
 };
 
 int main (int argc, char *argv[]) {
+    srand ( time(NULL) );
     //set signals
     signal(SIGCHLD, childClosedSignal);
     signal(SIGINT, closeProgramSignal);

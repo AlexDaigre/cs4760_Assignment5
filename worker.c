@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <time.h>
 #include <string.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
@@ -14,6 +15,7 @@
 
 void closeProgramSignal(int sig);
 void closeProgram();
+
 
 void setupSharedClock();
 #define CLOCKVAR 0
@@ -33,11 +35,13 @@ struct mesg_buffer {
 } message; 
 
 void requestOrReleaseResource(int requestOrRelease);
+void releaseAllResources();
 int maxResources[20];
 int alocatedResources[20] = {0};
 
 int main (int argc, char *argv[]) {
     signal(SIGINT, closeProgramSignal);
+    srand ( time(NULL) );
 
     char* maxResourcesString = argv[1];
     char* stringElement = strtok(maxResourcesString, "/");
@@ -64,6 +68,7 @@ int main (int argc, char *argv[]) {
 
         if (action >= 96){
             //release resources and close program
+            releaseAllResources();
             closeProgram();
         } else if ((action < 96) && (action >= 78)){
             //request resource
@@ -141,8 +146,10 @@ void requestOrReleaseResource(int requestOrRelease) {
     int resorcesToRequest[20];
     int i;
     for (i = 0; i < 20; i++){
-        int amount = (rand() % 4) * requestOrRelease;
-        if ((alocatedResources[i] + amount) <= maxResources[i]){
+        // int amount = (rand() % 4) * requestOrRelease;
+        int amount = (rand() % 4);
+        int newAllocation = alocatedResources[i] + amount;
+        if ((newAllocation <= maxResources[i]) && (newAllocation >= 0)){
             resorcesToRequest[i] = amount;
         } else {
             resorcesToRequest[i] = 0;
@@ -150,6 +157,8 @@ void requestOrReleaseResource(int requestOrRelease) {
     }
 
     message.mtype = 1;
+    // message.mtext[0] ='\0';
+    strcpy(message.mtext, "");
     sprintf(
         message.mtext, 
         "%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d", 
@@ -198,4 +207,48 @@ void requestOrReleaseResource(int requestOrRelease) {
     }
 
     printf("Child %d: recived message from parent\n", getpid());
+}
+
+
+void releaseAllResources(){
+    message.mtype = 1;
+    // message.mtext[0] ='\0';
+    strcpy(message.mtext, "");
+    sprintf(
+        message.mtext, 
+        "%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d", 
+        getpid(),
+        alocatedResources[0] * -1,
+        alocatedResources[1] * -1,
+        alocatedResources[2] * -1,
+        alocatedResources[3] * -1,
+        alocatedResources[4] * -1,
+        alocatedResources[5] * -1,
+        alocatedResources[6] * -1,
+        alocatedResources[7] * -1,
+        alocatedResources[8] * -1,
+        alocatedResources[9] * -1,
+        alocatedResources[10] * -1,
+        alocatedResources[11] * -1,
+        alocatedResources[12] * -1,
+        alocatedResources[13] * -1,
+        alocatedResources[14] * -1,
+        alocatedResources[15] * -1,
+        alocatedResources[16] * -1,
+        alocatedResources[17] * -1,
+        alocatedResources[18] * -1,
+        alocatedResources[19] * -1
+    );
+
+    int msgSent = msgsnd(msgQueueId, &message, sizeof(message), 0);
+    if (msgSent < 0){
+        printf("Child %d: failed to send message.\n", getpid());
+        printf("Error: %d\n", errno);
+        closeProgram();
+    }
+    printf("Child %d: Requested to close\n", getpid());
+
+    msgrcv(msgQueueId, &message, sizeof(message), getpid(), 0);
+
+    printf("Child %d: authorised to close\n", getpid());
 }
