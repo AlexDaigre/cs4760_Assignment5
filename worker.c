@@ -70,12 +70,12 @@ int main (int argc, char *argv[]) {
             //release resources and close program
             releaseAllResources();
             closeProgram();
-        } else if ((action < 96) && (action >= 78)){
+        } else if ((action < 86) && (action >= 78)){
             //request resource
             requestOrReleaseResource(1);
         } else if ((action < 78) && (action >= 70)){
             //release resource
-            requestOrReleaseResource(-1);
+            requestOrReleaseResource(1);
         } else if (action < 70){
             //do nothing
             continue;
@@ -146,8 +146,8 @@ void requestOrReleaseResource(int requestOrRelease) {
     int resorcesToRequest[20];
     int i;
     for (i = 0; i < 20; i++){
-        // int amount = (rand() % 4) * requestOrRelease;
-        int amount = (rand() % 4);
+        int amount = (rand() % 4) * requestOrRelease;
+        // int amount = (rand() % 4);
         int newAllocation = alocatedResources[i] + amount;
         if ((newAllocation <= maxResources[i]) && (newAllocation >= 0)){
             resorcesToRequest[i] = amount;
