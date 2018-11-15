@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <string.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <sys/types.h>
@@ -13,7 +14,7 @@
 
 struct mesg_buffer { 
     long mtype; 
-    char mtext[10]; 
+    char mtext[100]; 
 } message; 
 
 void childClosedSignal(int sig);
@@ -22,6 +23,7 @@ void closeProgramSignal(int sig);
 void closeProgram();
 
 void reciveMessages();
+int checkGrant(int requestedResources[]);
 
 void setupOutputFile();
 
@@ -43,10 +45,11 @@ int* clockShmPtr;
 FILE* outputFile;
 
 int currentProcesses;
-#define maxProcesses 1
+#define maxProcesses 18
 #define numberOfResources 20
 
 pid_t openProcesses[18] = {0};
+pid_t blockedProcesses[18] = {0};
 
 int resourceLimts[numberOfResources] = {
     10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10
@@ -282,6 +285,7 @@ void createProcesses(){
         fprintf(outputFile, "Failed to exec worker!\n");
         exit(1);
     }
+    openProcesses[i] = newForkPid;
     printf("Execed child %d\n", newForkPid);
     fprintf(outputFile, "Execed child %d\n", newForkPid);
     currentProcesses++;
@@ -310,15 +314,84 @@ void reciveMessages(){
     if (msgRecived == -1){
         return;
     }
-    
-    printf("Parent: Recived msg from child:%d\n", atoi(message.mtext));
 
-    message.mtype = atoi(message.mtext);
+    char* requestedResourcesString = message.mtext;
+    char* stringElement = strtok(requestedResourcesString, "/");
+    int requestedResources[20];
 
-    int msgSent = msgsnd(msgQueueId, &message, sizeof(message), 0);
-    if (msgSent < 0){
-        printf("Parrent: failed to send message.\n");
+
+    pid_t requestingPid = atoi(stringElement);
+    stringElement = strtok (NULL, "/");
+
+    int i = 0;
+    while (stringElement != NULL){
+        requestedResources[i++] = atoi(stringElement);
+        stringElement = strtok (NULL, "/");
     }
-    printf("Parent: sent msg to  child:%d\n", atoi(message.mtext));
+
+    printf("Parent: Recived msg from child: %d ", requestingPid);
+    printf("requesting resources: {");
+    for (i = 0; i < 20; ++i) {
+        printf("%d,", requestedResources[i]);
+    }
+    printf("}\n");
+
+    int j;
+    int processLocation;
+    for(j = 0; j < 18; j++){
+        if (openProcesses[j] == requestingPid){
+            processLocation = j;
+            break;
+        }
+    }
+
+    int grantOkay = checkGrant(requestedResources);
+
+    if (grantOkay == 1){
+        message.mtype = requestingPid;
+        int n;
+        for(n = 0; n < 20; n++){
+            resourceAllocations[processLocation][n] += requestedResources[n];
+        }
+        int msgSent = msgsnd(msgQueueId, &message, sizeof(message), 0);
+        if (msgSent < 0){
+            printf("Parrent: failed to send message.\n");
+        }
+        printf("Parent: sent msg to child %d\n", requestingPid);
+    } else {
+        int n;
+        int openSpace;
+        for(n = 0; n < 18; n++){
+            if (blockedProcesses[n] == 0){
+                blockedProcesses[n] = requestingPid;
+                printf("Parrent: added process %d to blocked queue.\n", requestingPid);
+                break;
+            }
+        }
+    }
 }
-        
+
+int checkGrant(int requestedResources[]){
+    int avalibleResources[numberOfResources];
+
+    int i;
+    for (i = 0; i < numberOfResources; i++){
+        avalibleResources[i] = resourceLimts[i];
+    }
+
+    for (i = 0; i < 18; i++){
+        int j;
+        for (j = 0; j < numberOfResources; j++){
+            avalibleResources[j] -= resourceAllocations[i][j]; 
+        }
+    }
+
+    int grantOkay = 1;
+    int j;
+    for(j=0; j<20; j++){
+        if (requestedResources[j] > avalibleResources[j]){
+            grantOkay = 0;
+        }
+    }
+    return grantOkay;
+}

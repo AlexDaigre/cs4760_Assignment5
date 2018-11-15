@@ -29,19 +29,22 @@ int* clockShmPtr;
 
 struct mesg_buffer { 
     long mtype; 
-    char mtext[10]; 
+    char mtext[100]; 
 } message; 
+
+void requestOrReleaseResource(int requestOrRelease);
+int maxResources[20];
+int alocatedResources[20] = {0};
 
 int main (int argc, char *argv[]) {
     signal(SIGINT, closeProgramSignal);
 
     char* maxResourcesString = argv[1];
     char* stringElement = strtok(maxResourcesString, "/");
-    char* maxResources[20];
 
     int i = 0;
     while (stringElement != NULL){
-        maxResources[i++] = stringElement;
+        maxResources[i++] = atoi(stringElement);
         stringElement = strtok (NULL, "/");
     }
 
@@ -52,31 +55,30 @@ int main (int argc, char *argv[]) {
 
     // printf("{");
     // for (i = 0; i < 20; ++i) {
-    //     printf("%s,", maxResources[i]);
+    //     printf("%d,", maxResources[i]);
     // }
     // printf("}\n");
 
-    message.mtype = 1;
-    sprintf(message.mtext, "%d", getpid());
-    // int j = 0;
-    // for(j=0; j<20; j++){
-    //     newResourceRequest.mtext[j] = 3;
-    // }
-    // newResourceRequest.mtext[20] = getpid();
-    // newResourceRequest.mtext[0] = "a";
-    
-    printf("Child %d: sending message to parent\n", getpid());
-    int msgSent = msgsnd(msgQueueId, &message, sizeof(message), 0);
-    if (msgSent < 0){
-        printf("Child %d: failed to send message.\n", getpid());
-        printf("Error: %d\n", errno);
-        // closeProgram();
+    for(;;){
+        int action = rand() % 100;
+
+        if (action >= 96){
+            //release resources and close program
+            closeProgram();
+        } else if ((action < 96) && (action >= 78)){
+            //request resource
+            requestOrReleaseResource(1);
+        } else if ((action < 78) && (action >= 70)){
+            //release resource
+            requestOrReleaseResource(-1);
+        } else if (action < 70){
+            //do nothing
+            continue;
+        }
+
     }
-    printf("Child %d: SENT message to parent\n", getpid());
 
-    msgrcv(msgQueueId, &message, sizeof(message), getpid(), 0);
-    printf("Child %d: recived message from parent\n", getpid());
-
+    printf("Child %d: an error has occured.", getpid());
     closeProgram();
 }
 
@@ -133,4 +135,67 @@ void setupMsgQueue(){
         printf("Error: %d\n", errno);
         exit(1);
     }
+}
+
+void requestOrReleaseResource(int requestOrRelease) {
+    int resorcesToRequest[20];
+    int i;
+    for (i = 0; i < 20; i++){
+        int amount = (rand() % 4) * requestOrRelease;
+        if ((alocatedResources[i] + amount) <= maxResources[i]){
+            resorcesToRequest[i] = amount;
+        } else {
+            resorcesToRequest[i] = 0;
+        }
+    }
+
+    message.mtype = 1;
+    sprintf(
+        message.mtext, 
+        "%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d", 
+        getpid(),
+        resorcesToRequest[0],
+        resorcesToRequest[1],
+        resorcesToRequest[2],
+        resorcesToRequest[3],
+        resorcesToRequest[4],
+        resorcesToRequest[5],
+        resorcesToRequest[6],
+        resorcesToRequest[7],
+        resorcesToRequest[8],
+        resorcesToRequest[9],
+        resorcesToRequest[10],
+        resorcesToRequest[11],
+        resorcesToRequest[12],
+        resorcesToRequest[13],
+        resorcesToRequest[14],
+        resorcesToRequest[15],
+        resorcesToRequest[16],
+        resorcesToRequest[17],
+        resorcesToRequest[18],
+        resorcesToRequest[19]
+    );
+    
+    printf("Child %d: sending message to parent requesting ", getpid());
+    printf("{");
+    for (i = 0; i < 20; ++i) {
+        printf("%d,", resorcesToRequest[i]);
+    }
+    printf("}\n");
+
+    int msgSent = msgsnd(msgQueueId, &message, sizeof(message), 0);
+    if (msgSent < 0){
+        printf("Child %d: failed to send message.\n", getpid());
+        printf("Error: %d\n", errno);
+        closeProgram();
+    }
+    printf("Child %d: SENT message to parent\n", getpid());
+
+    msgrcv(msgQueueId, &message, sizeof(message), getpid(), 0);
+
+    for (i = 0; i < 20; i++){
+        alocatedResources[i] += resorcesToRequest[i];
+    }
+
+    printf("Child %d: recived message from parent\n", getpid());
 }
