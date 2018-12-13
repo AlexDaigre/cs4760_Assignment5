@@ -29,6 +29,7 @@ int checkGrant(int requestedResources[]);
 void setupOutputFile();
 
 void createProcesses();
+int createNextProcessAt = -1;
 void advanceTime();
 
 void setupSharedClock();
@@ -97,7 +98,7 @@ int resourceMaxes[18][numberOfResources] = {
 };
 
 int main (int argc, char *argv[]) {
-    srand ( time(NULL) );
+    srandom( getpid() );
     //set signals
     signal(SIGCHLD, childClosedSignal);
     signal(SIGINT, closeProgramSignal);
@@ -234,7 +235,7 @@ void setupSharedClock(){
 
 void advanceTime(){
     // clockShmPtr[0] += 1;
-    // clockShmPtr[1] += rand() % 1000;
+    // clockShmPtr[1] += random() % 1000;
     clockShmPtr[1] += 1000;
     while (clockShmPtr[1] >= 1000000000){
         clockShmPtr[1] -= 1000000000;
@@ -246,51 +247,62 @@ void advanceTime(){
 
 void createProcesses(){
     // printf("creating child\n");
-    int i;
-    int openSpace;
-    for(i = 0; i < 18; i++){
-        if (openProcesses[i] == 0){
-            openSpace = i;
-            break;
+
+    if (createNextProcessAt < 0){
+        int randNumber = (random() % 2);
+        createNextProcessAt = randNumber + clockShmPtr[0];
+        // printf("next process at %d seconds\n", createNextProcessAt);
+    }
+
+    if ((clockShmPtr[0] > createNextProcessAt) && (createNextProcessAt > 0)){
+   
+        int i;
+        int openSpace;
+        for(i = 0; i < 18; i++){
+            if (openProcesses[i] == 0){
+                openSpace = i;
+                break;
+            }
         }
+        char alocatedResourcesString[40];
+        sprintf(
+            alocatedResourcesString, 
+            "%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d", 
+            resourceMaxes[openSpace][0], 
+            resourceMaxes[openSpace][1], 
+            resourceMaxes[openSpace][2], 
+            resourceMaxes[openSpace][3], 
+            resourceMaxes[openSpace][4], 
+            resourceMaxes[openSpace][5], 
+            resourceMaxes[openSpace][6], 
+            resourceMaxes[openSpace][7], 
+            resourceMaxes[openSpace][8], 
+            resourceMaxes[openSpace][9], 
+            resourceMaxes[openSpace][10], 
+            resourceMaxes[openSpace][11], 
+            resourceMaxes[openSpace][12], 
+            resourceMaxes[openSpace][13], 
+            resourceMaxes[openSpace][14], 
+            resourceMaxes[openSpace][15], 
+            resourceMaxes[openSpace][16], 
+            resourceMaxes[openSpace][17], 
+            resourceMaxes[openSpace][18], 
+            resourceMaxes[openSpace][19]
+        );
+        pid_t newForkPid;
+        createNextProcessAt = -1;
+        newForkPid = fork();
+        if (newForkPid == 0){
+            execlp("./worker","./worker", alocatedResourcesString, NULL);
+            fprintf(stderr, "Failed to exec worker!\n");
+            fprintf(outputFile, "Failed to exec worker!\n");
+            exit(1);
+        }
+        openProcesses[i] = newForkPid;
+        printf("Execed child %d\n", newForkPid);
+        fprintf(outputFile, "Execed child %d\n", newForkPid);
+        currentProcesses++;
     }
-    char alocatedResourcesString[40];
-    sprintf(
-        alocatedResourcesString, 
-        "%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d/%d", 
-        resourceMaxes[openSpace][0], 
-        resourceMaxes[openSpace][1], 
-        resourceMaxes[openSpace][2], 
-        resourceMaxes[openSpace][3], 
-        resourceMaxes[openSpace][4], 
-        resourceMaxes[openSpace][5], 
-        resourceMaxes[openSpace][6], 
-        resourceMaxes[openSpace][7], 
-        resourceMaxes[openSpace][8], 
-        resourceMaxes[openSpace][9], 
-        resourceMaxes[openSpace][10], 
-        resourceMaxes[openSpace][11], 
-        resourceMaxes[openSpace][12], 
-        resourceMaxes[openSpace][13], 
-        resourceMaxes[openSpace][14], 
-        resourceMaxes[openSpace][15], 
-        resourceMaxes[openSpace][16], 
-        resourceMaxes[openSpace][17], 
-        resourceMaxes[openSpace][18], 
-        resourceMaxes[openSpace][19]
-    );
-    pid_t newForkPid;
-    newForkPid = fork();
-    if (newForkPid == 0){
-        execlp("./worker","./worker", alocatedResourcesString, NULL);
-        fprintf(stderr, "Failed to exec worker!\n");
-        fprintf(outputFile, "Failed to exec worker!\n");
-        exit(1);
-    }
-    openProcesses[i] = newForkPid;
-    printf("Execed child %d\n", newForkPid);
-    fprintf(outputFile, "Execed child %d\n", newForkPid);
-    currentProcesses++;
 }
 
 void setupMsgQueue(){

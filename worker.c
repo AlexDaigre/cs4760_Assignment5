@@ -16,7 +16,6 @@
 void closeProgramSignal(int sig);
 void closeProgram();
 
-
 void setupSharedClock();
 #define CLOCKVAR 0
 #define SHMNAME "/tmp/daigreTmp43648"
@@ -41,7 +40,8 @@ int alocatedResources[20] = {0};
 
 int main (int argc, char *argv[]) {
     signal(SIGINT, closeProgramSignal);
-    srand ( time(NULL) );
+    // srandom( time(NULL) );
+    srandom( getpid() );
 
     char* maxResourcesString = argv[1];
     char* stringElement = strtok(maxResourcesString, "/");
@@ -64,7 +64,7 @@ int main (int argc, char *argv[]) {
     // printf("}\n");
 
     for(;;){
-        int action = rand() % 100;
+        int action = random() % 100;
 
         if (action >= 96){
             //release resources and close program
@@ -146,7 +146,7 @@ void requestOrReleaseResource(int requestOrRelease) {
     int resorcesToRequest[20];
     int i;
     for (i = 0; i < 20; i++){
-        int amount = (rand() % 4) * requestOrRelease;
+        int amount = (random() % 4) * requestOrRelease;
         // int amount = (rand() % 4);
         int newAllocation = alocatedResources[i] + amount;
         if ((newAllocation <= maxResources[i]) && (newAllocation >= 0)){
