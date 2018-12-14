@@ -39,11 +39,11 @@ int maxResources[20];
 int alocatedResources[20] = {0};
 
 int main (int argc, char *argv[]) {
-    printf("starting child\n");
+    // printf("starting child\n");
     signal(SIGINT, closeProgramSignal);
     // srandom( time(NULL) );
-    // srandom( getpid() );
-    srandom( 1 );
+    srandom( getpid() );
+    // srandom( 1 );
 
     char* maxResourcesString = argv[1];
     char* stringElement = strtok(maxResourcesString, "/");
@@ -65,22 +65,22 @@ int main (int argc, char *argv[]) {
     // }
     // printf("}\n");
 
-    printf("starting child loop\n");
+    // printf("starting child loop\n");
 
     for(;;){
         int action = random() % 100;
 
-        if (action >= 96){
+        if (action >= 99){
             //release resources and close program
             releaseAllResources();
             closeProgram();
-        } else if ((action < 86) && (action >= 78)){
+        } else if ((action < 99) && (action >= 78)){
             //request resource
             requestOrReleaseResource(1);
-        } else if ((action < 78) && (action >= 70)){
+        } else if ((action < 78) && (action >= 74)){
             //release resource
             requestOrReleaseResource(-1);
-        } else if (action < 70){
+        } else if (action < 74){
             //do nothing
             continue;
         }
@@ -189,12 +189,12 @@ void requestOrReleaseResource(int requestOrRelease) {
         resorcesToRequest[19]
     );
     
-    printf("Child %d: sending message to parent requesting ", getpid());
-    printf("{");
-    for (i = 0; i < 20; ++i) {
-        printf("%d,", resorcesToRequest[i]);
-    }
-    printf("}\n");
+    // printf("Child %d: sending message to parent requesting ", getpid());
+    // printf("{");
+    // for (i = 0; i < 20; ++i) {
+    //     printf("%d,", resorcesToRequest[i]);
+    // }
+    // printf("}\n");
 
     int msgSent = msgsnd(msgQueueId, &message, sizeof(message), 0);
     if (msgSent < 0){
@@ -202,7 +202,7 @@ void requestOrReleaseResource(int requestOrRelease) {
         printf("Error: %d\n", errno);
         closeProgram();
     }
-    printf("Child %d: SENT message to parent\n", getpid());
+    // printf("Child %d: SENT message to parent\n", getpid());
 
     msgrcv(msgQueueId, &message, sizeof(message), getpid(), 0);
 
@@ -210,7 +210,7 @@ void requestOrReleaseResource(int requestOrRelease) {
         alocatedResources[i] += resorcesToRequest[i];
     }
 
-    printf("Child %d: recived message from parent\n", getpid());
+    // printf("Child %d: recived message from parent\n", getpid());
 }
 
 

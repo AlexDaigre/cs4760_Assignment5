@@ -29,7 +29,7 @@ int checkGrant(int processLocation, int requestedResources[]);
 void setupOutputFile();
 
 void createProcesses();
-int createNextProcessAt = -1;
+int createNextProcessAt = 1;
 void advanceTime();
 
 void setupSharedClock();
@@ -53,6 +53,8 @@ int currentProcesses;
 
 pid_t openProcesses[18] = {0};
 pid_t blockedProcesses[18] = {0};
+
+void intilizeResourceTables();
 
 int resourceLimts[numberOfResources] = {
     10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10
@@ -97,26 +99,26 @@ int resourceMaxes[18][numberOfResources] = {
     {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3},
     {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3}
 };
-int resourceNeeds[18][numberOfResources] = {
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
-};
+// int resourceNeeds[18][numberOfResources] = {
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+//     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+// };
 
 int main (int argc, char *argv[]) {
     srandom( getpid() );
@@ -163,6 +165,8 @@ int main (int argc, char *argv[]) {
     clockShmPtr[1] = 0;
 
     setupMsgQueue();
+
+    intilizeResourceTables();
 
     while(clockShmPtr[0] < 80){
     // while(1==1){
@@ -270,7 +274,7 @@ void createProcesses(){
     // printf("creating child\n");
 
     if (createNextProcessAt < 0){
-        int randNumber = (random() % 2) + 1;
+        int randNumber = (random() % 2);
         createNextProcessAt = randNumber + clockShmPtr[0];
         printf("next process at %d seconds\n", createNextProcessAt);
     }
@@ -507,12 +511,27 @@ int checkGrant(int processLocation, int requestedResources[]){
     return grantOkay;
 }
 
-void generateNeedTable() {
+// void generateNeedTable() {
+//     int i;
+//     for (i = 0; i < 18; i++){
+//         int j;
+//         for (j = 0; j < numberOfResources; j++){
+//             resourceNeeds[i][j] = resourceMaxes[i][j] - resourceAllocations[i][j];
+//         }
+//     }
+// }
+
+void intilizeResourceTables(){
     int i;
+    int j;
+
+    for (i=0; i < numberOfResources; i++){
+        resourceLimts[i] = (random() % 10) +1;
+    }
+
     for (i = 0; i < 18; i++){
-        int j;
         for (j = 0; j < numberOfResources; j++){
-            resourceNeeds[i][j] = resourceMaxes[i][j] - resourceAllocations[i][j];
+            resourceMaxes[i][j] = (random() % 2) +1;  
         }
     }
 }
