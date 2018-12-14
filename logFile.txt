@@ -2,54 +2,53 @@ Log file name: logFile.txt
 Max run time: 20
 1:0
 2:0
-Execed child 8974
+Execed child 9404
 3:0
 4:0
-Execed child 8975
+Execed child 9405
 5:0
-Execed child 8976
 6:0
+Execed child 9406
 7:0
-Execed child 8977
 8:0
-Execed child 8978
+Execed child 9407
 9:0
 10:0
-Execed child 8979
+Execed child 9408
 11:0
+Execed child 9409
 12:0
-Execed child 8980
 13:0
-Execed child 8981
+Execed child 9410
 14:0
 15:0
-Execed child 8982
+Execed child 9411
 16:0
+Execed child 9412
 17:0
-Execed child 8983
 18:0
+Execed child 9413
 19:0
-Execed child 8984
 20:0
-Execed child 8985
+Execed child 9414
 21:0
-Execed child 8986
+Execed child 9415
 22:0
-Execed child 8987
+Execed child 9416
 23:0
-Execed child 8988
+Execed child 9417
 24:0
+Execed child 9418
 25:0
-Execed child 8989
 26:0
+Execed child 9419
 27:0
-Execed child 8990
+Execed child 9420
 28:0
-Execed child 8991
+Execed child 9421
 29:0
 30:0
 31:0
 32:0
 33:0
 34:0
-35:0
