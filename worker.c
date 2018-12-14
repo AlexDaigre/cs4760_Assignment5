@@ -31,6 +31,7 @@ int* clockShmPtr;
 struct mesg_buffer { 
     long mtype; 
     char mtext[100]; 
+    int requestOrRelease;
 } message; 
 
 void requestOrReleaseResource(int requestOrRelease);
@@ -161,6 +162,7 @@ void requestOrReleaseResource(int requestOrRelease) {
     }
 
     message.mtype = 1;
+    message.requestOrRelease = requestOrRelease;
     // message.mtext[0] ='\0';
     strcpy(message.mtext, "");
     sprintf(

@@ -16,6 +16,7 @@
 struct mesg_buffer { 
     long mtype; 
     char mtext[100]; 
+    int requestOrRelease;
 } message; 
 
 void childClosedSignal(int sig);
@@ -220,12 +221,6 @@ void closeProgramSignal(int sig){
 }
 
 void closeProgram(){
-    printf("Final Stats:\n");
-    printf("  Times Deadlock Avoidance Ran: %d\n", deadlockAvoidanceRun);
-    printf("  Requests Granted: %d\n", requestsGranted);
-    printf("  Requests Denied: %d\n", requestDenied);
-    printf("  Percent of requests Granted: %f\n", (double)requestsGranted/(double)deadlockAvoidanceRun);
-
     shmctl(clockShmId, IPC_RMID, NULL);
     shmdt(clockShmPtr);
     fclose(outputFile);
@@ -239,6 +234,11 @@ void closeProgram(){
     printf("Parrent: Exiting gracefully.\n");
     fprintf(outputFile, "Parrent: Exiting gracefully.\n");
     while (closeChild() > 0){}
+    printf("Final Stats:\n");
+    printf("  Times Deadlock Avoidance Ran: %d\n", deadlockAvoidanceRun);
+    printf("  Requests Granted: %d\n", requestsGranted);
+    printf("  Requests Denied: %d\n", requestDenied);
+    printf("  Percent of requests Granted: %f\n", (double)requestsGranted/(double)deadlockAvoidanceRun);
     exit(0);
 }
 
@@ -431,6 +431,15 @@ void reciveMessages(){
         }
         printf("Parent: sent msg to child %d Granting Request\n", requestingPid);
         fprintf(outputFile, "Parent: sent msg to child %d Granting Request\n", requestingPid);
+        //Check all blocked processes
+        // if (message.requestOrRelease == -1){
+        //     int i;
+        //     for (i = 0; i < 18; i++){
+        //         if (blockedProcesses[i] != 0){
+        //             checkGrant(i, requestedResources);
+        //         }
+        //     }
+        // }
     } else {
         requestDenied++;
         printf("Parent: sent msg to child %d denying Request\n", requestingPid);
