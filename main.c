@@ -24,7 +24,7 @@ void closeProgramSignal(int sig);
 void closeProgram();
 
 void reciveMessages();
-int checkGrant(int requestedResources[]);
+int checkGrant(int processLocation, int requestedResources[]);
 
 void setupOutputFile();
 
@@ -95,6 +95,26 @@ int resourceMaxes[18][numberOfResources] = {
     {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3},
     {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3},
     {3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3}
+};
+int resourceNeeds[18][numberOfResources] = {
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 };
 
 int main (int argc, char *argv[]) {
@@ -359,7 +379,7 @@ void reciveMessages(){
         }
     }
 
-    int grantOkay = checkGrant(requestedResources);
+    int grantOkay = checkGrant(processLocation, requestedResources);
 
     if (grantOkay == 1){
         message.mtype = requestingPid;
@@ -371,8 +391,9 @@ void reciveMessages(){
         if (msgSent < 0){
             printf("Parrent: failed to send message.\n");
         }
-        printf("Parent: sent msg to child %d\n", requestingPid);
+        printf("Parent: sent msg to child %d Granting Request\n", requestingPid);
     } else {
+        printf("Parent: sent msg to child %d denying Request\n", requestingPid);
         int n;
         int openSpace;
         for(n = 0; n < 18; n++){
@@ -385,17 +406,35 @@ void reciveMessages(){
     }
 }
 
-int checkGrant(int requestedResources[]){
+int checkGrant(int processLocation, int requestedResources[]){
     int avalibleResources[numberOfResources];
     int needResources[18][numberOfResources];
+    int newAlocations[18][numberOfResources];
+    int allocationOrder[18];
+    int processesToCheck = 0;
+    int finishedProcesses = 0;
 
+    int j;
     int i;
+
+    //copy respource limits
     for (i = 0; i < numberOfResources; i++){
         avalibleResources[i] = resourceLimts[i];
     }
 
+    //copy previous alocations
+    for (i = 0; i < numberOfResources; i++){
+         for (j = 0; j < numberOfResources; j++){
+            newAlocations[i][j] = resourceAllocations[i][j];
+        }
+    }
 
-    int j;
+    //add requested resources to allocations
+    for (i = 0; i < numberOfResources; i++){
+        newAlocations[processLocation][i] = newAlocations[processLocation][i] + requestedResources[i];
+    }
+
+    //calculate needed resorces and currently avalible resources
     for (i = 0; i < 18; i++){
         for (j = 0; j < numberOfResources; j++){
             //find number of avalible resources in system
@@ -406,7 +445,38 @@ int checkGrant(int requestedResources[]){
     }
 
     //Bankers algorythim
+    int processComplete = 1;
+    int currentProcessesToCheck = 0;
+    int grantOkay = 0;
+    while (processesToCheck < 18){
+        processComplete = 1;
+        currentProcessesToCheck = (currentProcessesToCheck + 1) % 18;
+
+        for (i = 0; i < numberOfResources; i++){
+            if (needResources[currentProcessesToCheck][i] > avalibleResources[i]){
+                processComplete = 0;
+                break;
+            }
+        }
+
+
+        if (processComplete == 1) {
+            allocationOrder[finishedProcesses] = currentProcessesToCheck;
+            finishedProcesses++;
+            processesToCheck = 0;
+            for (i = 0; i < numberOfResources; i++){
+                avalibleResources[i] = avalibleResources[i] + needResources[currentProcessesToCheck][i];
+                needResources[currentProcessesToCheck][i] = 0;
+            }
+        }
+        if (finishedProcesses == 18){
+            grantOkay = 1;
+            break;
+        }
+        processesToCheck++;
+    }
     // int processesCompleted[18];
+    // int safeSequence[18];
     // int newProcessCanComplete = 0;
     // int grantOkay = 1;
     // int n = 0;
@@ -427,11 +497,21 @@ int checkGrant(int requestedResources[]){
     //     }
     // }
 
-    int grantOkay = 1;
-    for(i=0; i<20; i++){
-        if (requestedResources[i] > avalibleResources[i]){
-            grantOkay = 0;
+    // int grantOkay = 1;
+    // for(i=0; i<20; i++){
+    //     if (requestedResources[i] > avalibleResources[i]){
+    //         grantOkay = 0;
+    //     }
+    // }
+    return grantOkay;
+}
+
+void generateNeedTable() {
+    int i;
+    for (i = 0; i < 18; i++){
+        int j;
+        for (j = 0; j < numberOfResources; j++){
+            resourceNeeds[i][j] = resourceMaxes[i][j] - resourceAllocations[i][j];
         }
     }
-    return grantOkay;
 }

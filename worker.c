@@ -147,7 +147,6 @@ void requestOrReleaseResource(int requestOrRelease) {
     int i;
     for (i = 0; i < 20; i++){
         int amount = (random() % 4);
-        // int amount = (rand() % 4);
         int newAllocation = alocatedResources[i] + amount;
         if ((newAllocation <= maxResources[i]) && (newAllocation >= 0)){
             resorcesToRequest[i] = amount;
