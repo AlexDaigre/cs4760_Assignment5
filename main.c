@@ -445,6 +445,7 @@ void reciveMessages(){
 }
 
 int checkGrant(int processLocation, int requestedResources[]){
+    advanceTime();
     deadlockAvoidanceRun++;
     int avalibleResources[numberOfResources];
     int needResources[18][numberOfResources];
@@ -573,6 +574,9 @@ void intilizeResourceTables(){
 }
 
 void print2DTable(int table[18][numberOfResources], char* title){
+    if (printVerbose == 0){
+        return;
+    }
     int i;
     int j;
         
@@ -615,6 +619,9 @@ void print2DTable(int table[18][numberOfResources], char* title){
 }
 
 void print1DTable(int table[numberOfResources], char* title){
+    if (printVerbose == 0){
+        return;
+    }
     int i;
 
     printf("%s\n", title);
