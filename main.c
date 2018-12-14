@@ -55,6 +55,8 @@ pid_t openProcesses[18] = {0};
 pid_t blockedProcesses[18] = {0};
 
 void intilizeResourceTables();
+void print2DTable(int table[18][numberOfResources], char* title);
+void print1DTable(int table[numberOfResources], char* title);
 
 int resourceLimts[numberOfResources] = {
     10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10
@@ -526,12 +528,69 @@ void intilizeResourceTables(){
     int j;
 
     for (i=0; i < numberOfResources; i++){
-        resourceLimts[i] = (random() % 10) +1;
+        resourceLimts[i] = (random() % 10) +5;
     }
+    print1DTable(resourceLimts, "System Resources:");
 
     for (i = 0; i < 18; i++){
         for (j = 0; j < numberOfResources; j++){
-            resourceMaxes[i][j] = (random() % 2) +1;  
+            resourceMaxes[i][j] = (random() % 3) +1;  
         }
     }
+    print2DTable(resourceMaxes, "Resource Maxes:");
+}
+
+void print2DTable(int table[18][numberOfResources], char* title){
+    int i;
+    int j;
+        
+    printf("%s\n", title);
+    printf("    ");
+    for (i=0; i < numberOfResources; i++){
+        if ( i < 10){
+            printf("  %d ", i); 
+        } else {
+            printf(" %d ", i); 
+        }
+    }
+    printf("\n");
+
+    for (i = 0; i < 18; i++){
+        if ( i < 10){
+            printf(" P%d ", i); 
+        } else {
+            printf("P%d ", i); 
+        }
+        for (j = 0; j < numberOfResources; j++){
+            if ( table[i][j] < 10){
+                printf("  %d ", table[i][j]); 
+            } else {
+                printf(" %d ", table[i][j]); 
+            }
+        }
+        printf("\n");
+    }
+}
+
+void print1DTable(int table[numberOfResources], char* title){
+    int i;
+
+    printf("%s\n", title);
+    for (i=0; i < numberOfResources; i++){
+        if ( i < 10){
+            printf("  %d ", i); 
+        } else {
+            printf(" %d ", i); 
+        }
+    }
+    printf("\n");
+
+    for (i = 0; i < numberOfResources; i++){
+        if ( table[i] < 10){
+            printf("  %d ", table[i]); 
+        } else {
+            printf(" %d ", table[i]); 
+        }
+    }
+    printf("\n");
 }
