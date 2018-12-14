@@ -220,6 +220,12 @@ void closeProgramSignal(int sig){
 }
 
 void closeProgram(){
+    printf("Final Stats:\n");
+    printf("  Times Deadlock Avoidance Ran: %d\n", deadlockAvoidanceRun);
+    printf("  Requests Granted: %d\n", requestsGranted);
+    printf("  Requests Denied: %d\n", requestDenied);
+    printf("  Percent of requests Granted: %f\n", (double)requestsGranted/(double)deadlockAvoidanceRun);
+
     shmctl(clockShmId, IPC_RMID, NULL);
     shmdt(clockShmPtr);
     fclose(outputFile);
