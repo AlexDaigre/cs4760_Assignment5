@@ -34,16 +34,17 @@ void advanceTime();
 
 void setupSharedClock();
 #define CLOCKVAR 0
-#define SHMNAME "/tmp/daigreTmp99944"
+#define SHMNAME "/tmp/daigreTmp11556688"
 
 
 void setupMsgQueue();
 #define QUEUEVAR 0
-#define QUEUENAME "/tmp/daigreTmp99955"
+#define QUEUENAME "/tmp/daigreTmp11556677"
 int msgQueueId;
 
 int clockShmId;
 int* clockShmPtr;
+// int clockShmPtr[2];
 FILE* outputFile;
 
 int currentProcesses;
@@ -203,7 +204,7 @@ void closeProgramSignal(int sig){
 
 void closeProgram(){
     shmctl(clockShmId, IPC_RMID, NULL);
-    // shmdt(clockShmPtr);
+    shmdt(clockShmPtr);
     fclose(outputFile);
     msgctl(msgQueueId, IPC_RMID, NULL);
     int i;
@@ -269,9 +270,9 @@ void createProcesses(){
     // printf("creating child\n");
 
     if (createNextProcessAt < 0){
-        int randNumber = (random() % 2);
+        int randNumber = (random() % 2) + 1;
         createNextProcessAt = randNumber + clockShmPtr[0];
-        // printf("next process at %d seconds\n", createNextProcessAt);
+        printf("next process at %d seconds\n", createNextProcessAt);
     }
 
     if ((clockShmPtr[0] > createNextProcessAt) && (createNextProcessAt > 0)){
@@ -327,15 +328,15 @@ void createProcesses(){
 
 void setupMsgQueue(){
     key_t msgQueueKey;
-    if (-1 != open(QUEUENAME, O_CREAT, 0666)) {
-        msgQueueKey = ftok(SHMNAME, QUEUEVAR);
+    if (-1 != open(QUEUENAME, O_CREAT, 0777)) {
+        msgQueueKey = ftok(QUEUENAME, QUEUEVAR);
     } else {
         printf("ftok error in parrent: setupMsgQueue\n");
         printf("Error: %d\n", errno);
         exit(1);
     }
 
-    msgQueueId = msgget(msgQueueKey, (IPC_CREAT | 0666));
+    msgQueueId = msgget(msgQueueKey, (IPC_CREAT | 0777));
     if (msgQueueId < 0) {
         printf("msgget error in parrent: setupSharedClock\n");
         printf("Error: %d\n", errno);

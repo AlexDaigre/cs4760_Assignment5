@@ -18,11 +18,11 @@ void closeProgram();
 
 void setupSharedClock();
 #define CLOCKVAR 0
-#define SHMNAME "/tmp/daigreTmp43648"
+#define SHMNAME "/tmp/daigreTmp11556688"
 
 void setupMsgQueue();
 #define QUEUEVAR 0
-#define QUEUENAME "/tmp/daigreTmp48083"
+#define QUEUENAME "/tmp/daigreTmp11556677"
 int msgQueueId;
 
 int clockShmId;
@@ -39,9 +39,11 @@ int maxResources[20];
 int alocatedResources[20] = {0};
 
 int main (int argc, char *argv[]) {
+    printf("starting child\n");
     signal(SIGINT, closeProgramSignal);
     // srandom( time(NULL) );
-    srandom( getpid() );
+    // srandom( getpid() );
+    srandom( 1 );
 
     char* maxResourcesString = argv[1];
     char* stringElement = strtok(maxResourcesString, "/");
@@ -52,7 +54,7 @@ int main (int argc, char *argv[]) {
         stringElement = strtok (NULL, "/");
     }
 
-    setupSharedClock();
+    // setupSharedClock();
     setupMsgQueue();
 
     // printf("time: %d:%d\n", clockShmPtr[0], clockShmPtr[1]);
@@ -62,6 +64,8 @@ int main (int argc, char *argv[]) {
     //     printf("%d,", maxResources[i]);
     // }
     // printf("}\n");
+
+    printf("starting child loop\n");
 
     for(;;){
         int action = random() % 100;
@@ -93,7 +97,7 @@ void closeProgramSignal(int sig){
 
 void closeProgram(){
     // shmctl(clockShmId, IPC_RMID, NULL);
-    shmdt(clockShmPtr);
+    // shmdt(clockShmPtr);
     printf("Child %d Exiting gracefully.\n", getpid());
     exit(0);
 }
@@ -127,16 +131,16 @@ void setupSharedClock(){
 void setupMsgQueue(){
     key_t msgQueueKey;
     if (-1 != open(QUEUENAME, O_CREAT, 0777)) {
-        msgQueueKey = ftok(SHMNAME, QUEUEVAR);
+        msgQueueKey = ftok(QUEUENAME, QUEUEVAR);
     } else {
-        printf("ftok error in parrent: setupMsgQueue\n");
+        printf("ftok error in child: setupMsgQueue\n");
         printf("Error: %d\n", errno);
         exit(1);
     }
 
-    msgQueueId = msgget(msgQueueKey, 0777 |IPC_CREAT);
+    msgQueueId = msgget(msgQueueKey, (IPC_CREAT | 0777));
     if (msgQueueId < 0) {
-        printf("msgget error in parrent: setupMsgQueue\n");
+        printf("msgget error in child: setupMsgQueue\n");
         printf("Error: %d\n", errno);
         exit(1);
     }
