@@ -122,6 +122,12 @@ int resourceMaxes[18][numberOfResources] = {
 //     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
 // };
 
+int requestsGranted = 0;
+int requestDenied = 0;
+int deadlockAvoidanceRun = 0;
+
+int printVerbose = 0;
+
 int main (int argc, char *argv[]) {
     srandom( getpid() );
     //set signals
@@ -133,10 +139,11 @@ int main (int argc, char *argv[]) {
     int maxRunTime = 20;
     char* logFile = "logFile.txt";
 
-    while ((c = getopt (argc, argv, "hs:l:t:")) != -1){
+    while ((c = getopt (argc, argv, "hs:l:t:v")) != -1){
         switch (c){
             case 'h':
                 printf("Options:\n-h: Help\n-l: The given argument(string) specifies the neame of the logfile.\n-t: The given number(int) specifies the max amount of time the program will run for.\n");
+                fprintf(outputFile, "Options:\n-h: Help\n-l: The given argument(string) specifies the neame of the logfile.\n-t: The given number(int) specifies the max amount of time the program will run for.\n");
                 exit(0);
                 break;
             case 'l':
@@ -145,8 +152,12 @@ int main (int argc, char *argv[]) {
             case 't':
                 maxRunTime = atoi(optarg);
                 break;
+            case 'v':
+                printVerbose = 1;
+                break;
             default:
                 printf("there was an error with arguments");
+                fprintf(outputFile, "there was an error with arguments");
                 exit(1);
                 break;
         }
@@ -219,7 +230,8 @@ void closeProgram(){
             kill(openProcesses[i], SIGINT);
         }
     }
-    printf("Exiting gracefully.\n");
+    printf("Parrent: Exiting gracefully.\n");
+    fprintf(outputFile, "Parrent: Exiting gracefully.\n");
     while (closeChild() > 0){}
     exit(0);
 }
@@ -241,6 +253,8 @@ void setupSharedClock(){
     } else {
         printf("ftok error in parrent: setupSharedClock\n");
         printf("Error: %d\n", errno);
+        fprintf(outputFile, "ftok error in parrent: setupSharedClock\n");
+        fprintf(outputFile, "Error: %d\n", errno);
         exit(1);
     }
 
@@ -248,6 +262,8 @@ void setupSharedClock(){
     if (clockShmId < 0) {
         printf("shmget error in parrent: setupSharedClock\n");
         printf("Error: %d\n", errno);
+        fprintf(outputFile, "shmget error in parrent: setupSharedClock\n");
+        fprintf(outputFile, "Error: %d\n", errno);
         exit(1);
     }
 
@@ -255,15 +271,17 @@ void setupSharedClock(){
     if ((long) clockShmPtr == -1) {
         printf("shmat error in parrent: setupSharedClock\n");
         printf("Error: %d\n", errno);
+        fprintf(outputFile, "shmat error in parrent: setupSharedClock\n");
+        fprintf(outputFile, "Error: %d\n", errno);
         shmctl(clockShmId, IPC_RMID, NULL);
         exit(1);
     }
 }
 
 void advanceTime(){
-    // clockShmPtr[0] += 1;
-    // clockShmPtr[1] += random() % 1000;
-    clockShmPtr[1] += 1000;
+    clockShmPtr[0] += 1;
+    clockShmPtr[1] += random() % 1000;
+    // clockShmPtr[1] += 1000;
     while (clockShmPtr[1] >= 1000000000){
         clockShmPtr[1] -= 1000000000;
         clockShmPtr[0]++;
@@ -277,8 +295,9 @@ void createProcesses(){
 
     if (createNextProcessAt < 0){
         int randNumber = (random() % 2);
-        createNextProcessAt = randNumber + clockShmPtr[0];
-        printf("next process at %d seconds\n", createNextProcessAt);
+        // createNextProcessAt = randNumber + clockShmPtr[0];
+        createNextProcessAt = 1;
+        // printf("next process at %d seconds\n", createNextProcessAt);
     }
 
     if ((clockShmPtr[0] > createNextProcessAt) && (createNextProcessAt > 0)){
@@ -370,12 +389,13 @@ void reciveMessages(){
         stringElement = strtok (NULL, "/");
     }
 
-    printf("Parent: Recived msg from child: %d ", requestingPid);
-    printf("requesting resources: {");
-    for (i = 0; i < 20; ++i) {
-        printf("%d,", requestedResources[i]);
-    }
-    printf("}\n");
+    // printf("Parent: Recived msg from child: %d ", requestingPid);
+    // printf("requesting resources: {");
+    // for (i = 0; i < 20; ++i) {
+    //     printf("%d,", requestedResources[i]);
+    // }
+    // printf("}\n");
+    print1DTable(requestedResources, "Parent: Recived msg from Requesting:");
 
     int j;
     int processLocation;
@@ -389,31 +409,43 @@ void reciveMessages(){
     int grantOkay = checkGrant(processLocation, requestedResources);
 
     if (grantOkay == 1){
+        requestsGranted++;
         message.mtype = requestingPid;
         int n;
         for(n = 0; n < 20; n++){
             resourceAllocations[processLocation][n] += requestedResources[n];
+            if (resourceAllocations[processLocation][n] < 0) {
+                resourceAllocations[processLocation][n] = 0;
+            }
         }
         int msgSent = msgsnd(msgQueueId, &message, sizeof(message), 0);
         if (msgSent < 0){
             printf("Parrent: failed to send message.\n");
+            fprintf(outputFile, "Parrent: failed to send message.\n");
         }
         printf("Parent: sent msg to child %d Granting Request\n", requestingPid);
+        fprintf(outputFile, "Parent: sent msg to child %d Granting Request\n", requestingPid);
     } else {
+        requestDenied++;
         printf("Parent: sent msg to child %d denying Request\n", requestingPid);
+        fprintf(outputFile, "Parent: sent msg to child %d denying Request\n", requestingPid);
         int n;
         int openSpace;
         for(n = 0; n < 18; n++){
             if (blockedProcesses[n] == 0){
                 blockedProcesses[n] = requestingPid;
                 printf("Parrent: added process %d to blocked queue.\n", requestingPid);
+                fprintf(outputFile, "Parrent: added process %d to blocked queue.\n", requestingPid);
                 break;
             }
         }
     }
+    print1DTable(resourceLimts, "System Resources:");
+    print2DTable(resourceAllocations, "Resources Alocated:");
 }
 
 int checkGrant(int processLocation, int requestedResources[]){
+    deadlockAvoidanceRun++;
     int avalibleResources[numberOfResources];
     int needResources[18][numberOfResources];
     int newAlocations[18][numberOfResources];
@@ -545,30 +577,40 @@ void print2DTable(int table[18][numberOfResources], char* title){
     int j;
         
     printf("%s\n", title);
+    fprintf(outputFile, "%s\n", title);
     printf("    ");
+    fprintf(outputFile, "    ");
     for (i=0; i < numberOfResources; i++){
         if ( i < 10){
             printf("  %d ", i); 
+            fprintf(outputFile, "  %d ", i); 
         } else {
             printf(" %d ", i); 
+            fprintf(outputFile, " %d ", i); 
         }
     }
     printf("\n");
+    fprintf(outputFile, "\n");
 
     for (i = 0; i < 18; i++){
         if ( i < 10){
             printf(" P%d ", i); 
+            fprintf(outputFile, " P%d ", i);
         } else {
             printf("P%d ", i); 
+            fprintf(outputFile, "P%d ", i); 
         }
         for (j = 0; j < numberOfResources; j++){
             if ( table[i][j] < 10){
                 printf("  %d ", table[i][j]); 
+                fprintf(outputFile, "  %d ", table[i][j]); 
             } else {
                 printf(" %d ", table[i][j]); 
+                fprintf(outputFile, " %d ", table[i][j]);
             }
         }
         printf("\n");
+        fprintf(outputFile, "\n");
     }
 }
 
@@ -576,21 +618,28 @@ void print1DTable(int table[numberOfResources], char* title){
     int i;
 
     printf("%s\n", title);
+    fprintf(outputFile, "%s\n", title);
     for (i=0; i < numberOfResources; i++){
         if ( i < 10){
             printf("  %d ", i); 
+            fprintf(outputFile, "  %d ", i);
         } else {
             printf(" %d ", i); 
+            fprintf(outputFile, " %d ", i); 
         }
     }
     printf("\n");
+    fprintf(outputFile, "\n");
 
     for (i = 0; i < numberOfResources; i++){
         if ( table[i] < 10){
             printf("  %d ", table[i]); 
+            fprintf(outputFile, "  %d ", table[i]); 
         } else {
             printf(" %d ", table[i]); 
+            fprintf(outputFile, " %d ", table[i]); 
         }
     }
     printf("\n");
+    fprintf(outputFile, "\n");
 }
